@@ -2,21 +2,22 @@
 
 ## 專案概覽
 
-這是一個 Node.js + Express 天氣預報 API 服務，串接中央氣象署（CWA）開放資料平台。
+Node.js + Express 天氣預報 API 服務，串接中央氣象署（CWA）開放資料平台，提供台灣六都 36 小時與三日天氣預報。
 
-**架構特點**：單檔案架構，所有路由和業務邏輯集中在 `server.js`，適合小型專案快速開發。
+**架構特點**：單檔案架構，所有邏輯集中於 `server.js`。
 
 ## 技術棧
 
 - **Runtime**: Node.js + Express 4.x
-- **HTTP Client**: axios（呼叫外部 CWA API）
+- **HTTP Client**: axios
+- **快取**: node-cache（TTL 10 分鐘）
+- **驗證**: express-validator
 - **環境變數**: dotenv
-- **CORS**: cors middleware
 
 ## 開發指令
 
 ```bash
-npm run dev    # 開發模式（nodemon 自動重啟）
+npm run dev    # 開發模式（nodemon）
 npm start      # 正式啟動
 ```
 
@@ -25,56 +26,74 @@ npm start      # 正式啟動
 ### 環境變數 (.env)
 
 ```env
-CWA_API_KEY=<從 opendata.cwa.gov.tw 取得>
+CWA_API_KEY=<必填，從 opendata.cwa.gov.tw 取得>
 PORT=3000
 NODE_ENV=development
 ```
 
-### CWA API 端點
+⚠️ 程式啟動時會檢查 `CWA_API_KEY`，若未設定則 `process.exit(1)`。
 
-- **Base URL**: `https://opendata.cwa.gov.tw/api`
-- **36小時預報**: `/v1/rest/datastore/F-C0032-001`
-- **API 文件**: https://opendata.cwa.gov.tw/dist/opendata-swagger.html
+### 六都城市對照表 (CITY_MAP)
+
+| 路由參數 | CWA 名稱 | 三日資料集 ID |
+|----------|----------|---------------|
+| `taipei` | 臺北市 | F-D0047-061 |
+| `newtaipei` | 新北市 | F-D0047-069 |
+| `taoyuan` | 桃園市 | F-D0047-005 |
+| `taichung` | 臺中市 | F-D0047-073 |
+| `tainan` | 臺南市 | F-D0047-077 |
+| `kaohsiung` | 高雄市 | F-D0047-065 |
+
+## API 端點
+
+| 端點 | 說明 |
+|------|------|
+| `GET /api/weather/:city` | 36 小時預報（F-C0032-001） |
+| `GET /api/weather/3day/:city` | 三日預報（F-D0047-xxx） |
+| `GET /api/cities` | 城市列表 |
+| `GET /api/health` | 健康檢查 + 快取統計 |
 
 ## 程式碼慣例
 
 ### API 回應格式
 
-成功回應：
 ```javascript
-res.json({ success: true, data: { ... } });
+// 成功
+res.json({ success: true, cached: false, data: { ... } });
+
+// 錯誤（含可用城市列表）
+res.status(400).json({
+  error: "參數錯誤",
+  message: "無效的城市參數",
+  availableCities: [{ key: "taipei", name: "臺北市" }, ...]
+});
 ```
 
-錯誤回應：
+### 路由驗證模式
+
+使用 express-validator + middleware chain：
 ```javascript
-res.status(statusCode).json({ error: "錯誤類型", message: "描述" });
+app.get("/api/weather/:city", validateCity, handleValidation, getWeather36Hours);
 ```
 
-### CWA 天氣要素對應
+### 快取策略
 
-在解析 CWA API 回應時，使用以下 `elementName` 對應：
-- `Wx`: 天氣現象
-- `PoP`: 降雨機率
-- `MinT` / `MaxT`: 最低/最高溫度
-- `CI`: 舒適度
-- `WS`: 風速
+- 使用 `node-cache`，key 格式：`36h_{city}` 或 `3day_{city}`
+- 回應包含 `cached: true/false` 標示資料來源
 
 ## 擴展指南
 
-### 新增其他縣市天氣
+### 新增城市
 
-1. 複製 `getKaohsiungWeather` 函數
-2. 修改 `locationName` 參數（如：`"臺北市"`、`"高雄市"`）
-3. 新增對應路由：`app.get("/api/weather/{city}", handler)`
+1. 在 `CITY_MAP` 新增項目（注意使用「臺」非「台」）
+2. 路由自動支援，無需修改其他程式碼
 
-### 使用其他 CWA 資料集
+### CWA API 注意事項
 
-參考 CWA Swagger 文件，常用資料集：
-- `F-C0032-001`: 一般天氣預報（36小時）
-- `F-D0047-001` ~ `F-D0047-091`: 各縣市天氣預報
+- 36 小時預報：`records.location[0]`
+- 三日預報：`records.locations[0]`（多一層 `s`）
+- API 有每日呼叫次數限制
 
-## 注意事項
+## 文件
 
-- CWA API 有每日呼叫次數限制
-- 繁體中文地名需完全符合 CWA 格式（如「臺北市」非「台北市」）
-- `.env` 不納入版控，部署時需手動設定
+- `Doc/API.md`：完整 API 規格文件
