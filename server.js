@@ -193,20 +193,18 @@ const getWeather3Days = async (req, res) => {
       });
     }
 
-    const locationsData = response.data.records.Locations[0];
+    const locationsArray = response.data.records.Locations;
 
-    if (!locationsData) {
+    if (!locationsArray || locationsArray.length === 0) {
       return res.status(404).json({
         error: "查無資料",
         message: `無法取得${cityInfo.name}三日天氣資料`,
       });
     }
 
-    // 直接回傳 CWA API 原始資料結構
+    // 直接回傳 CWA API 原始資料結構，保持 Locations（大寫）
     const weatherData = {
-      city: locationsData.locationsName,
-      datasetDescription: locationsData.dataid,
-      locations: locationsData,
+      Locations: locationsArray,
     };
 
     // 存入快取
