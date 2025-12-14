@@ -200,19 +200,23 @@ const getWeather3Days = async (req, res) => {
       data: weatherData,
     });
   } catch (error) {
-    console.error(`取得${cityInfo.name}三日天氣資料失敗:`, error.message);
-
+    console.error(`[3Day] 錯誤 - ${cityInfo.name}:`, error.message);
+    
     if (error.response) {
+      console.error(`[3Day] HTTP ${error.response.status}:`, error.response.data);
       return res.status(error.response.status).json({
         error: "CWA API 錯誤",
         message: error.response.data.message || "無法取得天氣資料",
+        statusCode: error.response.status,
         details: error.response.data,
       });
     }
 
+    console.error(`[3Day] 系統錯誤:`, error.stack);
     res.status(500).json({
       error: "伺服器錯誤",
       message: "無法取得天氣資料，請稍後再試",
+      errorMessage: error.message,
     });
   }
 };
