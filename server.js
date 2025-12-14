@@ -166,6 +166,7 @@ const getWeather3Days = async (req, res) => {
     }
 
     // 呼叫 CWA API - 三日天氣預報
+    console.log(`[3Day] 呼叫 API: ${cityInfo.dataset3Day}`);
     const response = await axios.get(
       `${CWA_API_BASE_URL}/v1/rest/datastore/${cityInfo.dataset3Day}`,
       {
@@ -174,6 +175,23 @@ const getWeather3Days = async (req, res) => {
         },
       }
     );
+
+    console.log(`[3Day] API 狀態: ${response.status}`);
+    console.log(`[3Day] 回應結構:`, JSON.stringify({
+      hasRecords: !!response.data?.records,
+      hasLocations: !!response.data?.records?.locations,
+      locationsType: Array.isArray(response.data?.records?.locations) ? 'array' : typeof response.data?.records?.locations
+    }));
+
+    // 檢查資料結構
+    if (!response.data?.records?.locations) {
+      console.error(`[3Day] 資料結構異常，完整回應:`, JSON.stringify(response.data).substring(0, 500));
+      return res.status(500).json({
+        error: "資料結構錯誤",
+        message: "CWA API 回應格式異常",
+        hint: "請檢查 Zeabur 環境變數 CWA_API_KEY 是否正確設定",
+      });
+    }
 
     const locationsData = response.data.records.locations[0];
 
