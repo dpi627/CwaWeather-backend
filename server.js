@@ -179,12 +179,12 @@ const getWeather3Days = async (req, res) => {
     console.log(`[3Day] API 狀態: ${response.status}`);
     console.log(`[3Day] 回應結構:`, JSON.stringify({
       hasRecords: !!response.data?.records,
-      hasLocations: !!response.data?.records?.locations,
-      locationsType: Array.isArray(response.data?.records?.locations) ? 'array' : typeof response.data?.records?.locations
+      hasLocations: !!response.data?.records?.Locations,
+      LocationsType: Array.isArray(response.data?.records?.Locations) ? 'array' : typeof response.data?.records?.Locations
     }));
 
-    // 檢查資料結構
-    if (!response.data?.records?.locations) {
+    // 檢查資料結構（注意：Locations 是大寫 L）
+    if (!response.data?.records?.Locations) {
       console.error(`[3Day] 資料結構異常，完整回應:`, JSON.stringify(response.data).substring(0, 500));
       return res.status(500).json({
         error: "資料結構錯誤",
@@ -193,7 +193,7 @@ const getWeather3Days = async (req, res) => {
       });
     }
 
-    const locationsData = response.data.records.locations[0];
+    const locationsData = response.data.records.Locations[0];
 
     if (!locationsData) {
       return res.status(404).json({
