@@ -36,7 +36,16 @@ if (!CWA_API_KEY) {
 }
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://dpi627.github.io',
+    'http://localhost:3000',
+    'http://localhost:5500',
+    'http://127.0.0.1:5500'
+  ],
+  methods: ['GET', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
