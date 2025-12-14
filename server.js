@@ -177,14 +177,18 @@ const getWeather3Days = async (req, res) => {
     );
 
     console.log(`[3Day] API 狀態: ${response.status}`);
+    
+    // F-D0047 系列的資料結構：records.locations[0].location (小寫 locations)
+    // 注意：這是「鄉鎮預報」，不同於 F-C0032-001 的「縣市預報」
     console.log(`[3Day] 回應結構:`, JSON.stringify({
       hasRecords: !!response.data?.records,
-      hasLocations: !!response.data?.records?.Locations,
-      LocationsType: Array.isArray(response.data?.records?.Locations) ? 'array' : typeof response.data?.records?.Locations
+      hasLocations: !!response.data?.records?.locations,
+      locationsType: Array.isArray(response.data?.records?.locations) ? 'array' : typeof response.data?.records?.locations,
+      firstLocationHasData: !!response.data?.records?.locations?.[0]?.location
     }));
 
-    // 檢查資料結構（注意：Locations 是大寫 L）
-    if (!response.data?.records?.Locations) {
+    // 檢查資料結構（注意：F-D0047 使用小寫 locations）
+    if (!response.data?.records?.locations?.[0]?.location) {
       console.error(`[3Day] 資料結構異常，完整回應:`, JSON.stringify(response.data).substring(0, 500));
       return res.status(500).json({
         error: "資料結構錯誤",
@@ -193,7 +197,7 @@ const getWeather3Days = async (req, res) => {
       });
     }
 
-    const locationsArray = response.data.records.Locations;
+    const locationsArray = response.data.records.locations[0].location;
 
     if (!locationsArray || locationsArray.length === 0) {
       return res.status(404).json({
